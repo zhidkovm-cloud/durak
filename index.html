@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-<title>Дурак — v9.6.1 (portrait-first)</title>
-<!-- Build v9.6.1 @ 2025-09-06T14:32:42.892477Z -->
+<title>Дурак — v9.6.2 (portrait-first)</title>
+<!-- Build v9.6.2 @ 2025-09-06T14:43:20.564200Z -->
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f6b50">
@@ -14,7 +14,7 @@
 
 <style>
   :root{
-    --vh: 1vh; /* updated via JS */
+    --vh: 1vh;
     --card-w: 72px;
     --card-h: calc(var(--card-w) * 1.4);
     --overlap: -0.64;
@@ -124,7 +124,7 @@
     </div>
     <div class="row">
       <div id="status" class="pill muted" style="max-width:52vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">—</div>
-      <div class="pill version">v9.6.1</div>
+      <div class="pill version">v9.6.2</div>
       <button id="menuBtn" title="Меню">⋯</button>
     </div>
   </header>
@@ -165,16 +165,774 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<div id="errorOverlay" style="display:none"></div>
+
+<!-- Confirm Bito -->
+<dialog id="bitoConfirmDlg">
+  <h3 style="margin:0 0 10px 0">Подтвердить «Бито»?</h3>
+  <p class="muted" style="margin-top:0">Ход атакующего завершится, карты уйдут в отбой.</p>
+  <div class="row" style="justify-content:flex-end">
+    <button id="bitoCancel">Отмена</button>
+    <button id="bitoOk">Бито</button>
+  </div>
+</dialog>
+
+<!-- Throw-in dialog -->
+<dialog id="throwDlg">
+  <h3 style="margin:0 0 10px 0">Отдать / подкинуть</h3>
+  <p id="throwInfo" class="muted" style="margin-top:0"></p>
+  <div id="throwGrid" class="grid-cards"></div>
+  <div class="row" style="justify-content:flex-end; margin-top:10px">
+    <button id="throwCancel">Пропустить</button>
+    <button id="throwOk">Отдать выбранные</button>
+  </div>
+</dialog>
+
+<!-- SETTINGS DIALOG -->
+<dialog id="settingsDlg">
+  <h3 style="margin:0 0 10px 0">Настройки</h3>
+  <div class="row" style="gap:16px; flex-direction:column; align-items:stretch">
+    <label>Сложность бота
+      <select id="difficulty" style="width:100%">
+        <option value="easy">Лёгкая</option>
+        <option value="normal" selected>Обычная</option>
+        <option value="hard">Сложная</option>
+      </select>
+    </label>
+    <label>Скорость анимаций (<span id="animVal">1.0x</span>)
+      <input id="animRange" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
+    </label>
+    <label>Громкость звука (<span id="volVal">70%</span>)
+      <input id="volRange" type="range" min="0" max="1" step="0.05" value="0.7">
+    </label>
+    <label>Задержка «Бито» у бота (<span id="bitoDelayVal">0.8с</span>)
+      <input id="bitoDelayRange" type="range" min="0.0" max="2.0" step="0.1" value="0.8">
+    </label>
+    <label>Лимит времени на ход (<span id="turnLimitVal">—</span>)
+      <input id="turnLimitRange" type="range" min="0" max="30" step="1" value="0">
+      <div class="muted" style="font-size:12px">0 = без таймера</div>
+    </label>
+    <label>Сортировка карт
+      <select id="sortMode" style="width:100%">
+        <option value="suitRank" selected>По масти и старшинству</option>
+        <option value="rankSuit">По рангу, затем масть</option>
+        <option value="none">Без сортировки</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="trumpRight" checked> Козыри всегда справа</label>
+    <label><input type="checkbox" id="saveToggle" checked> Автосохранение партии</label>
+  </div>
+  <div class="row" style="justify-content:flex-end; margin-top:12px">
+    <button id="settingsClose">Закрыть</button>
+  </div>
+</dialog>
+
+<!-- MENU DIALOG -->
+<dialog id="menuDlg">
+  <h3 style="margin:0 0 10px 0">Меню</h3>
+  <div class="row" style="gap:10px; flex-direction:column; align-items:stretch">
+    <button id="menuNew">Новая игра</button>
+    <button id="menuSettings">Настройки</button>
+    <button id="menuOnline">Игра с другом</button>
+  </div>
+  <div class="row" style="justify-content:flex-end; margin-top:12px">
+    <button id="menuClose">Закрыть</button>
+  </div>
+</dialog>
+
+<!-- ONLINE DIALOG -->
+<dialog id="onlineDlg">
+  <h3 style="margin:0 0 10px 0">Игра с другом (P2P)</h3>
+  <p class="muted">Копипаст-сигналинг, STUN Google. Бросок/отдача синхронизированы.</p>
+  <div class="row" style="gap:12px; flex-direction:column; align-items:stretch">
+    <div class="box">
+      <h4 style="margin:0 0 6px 0">Создать игру</h4>
+      <div class="row">
+        <button id="hostCreate">Создать оффер</button>
+        <button id="hostCopy">Копировать оффер</button>
+      </div>
+      <textarea id="hostOffer" placeholder="Оффер появится здесь"></textarea>
+      <div class="row">
+        <button id="hostSetAnswer">Вставить ответ друга</button>
+        <button id="hostPaste">Вставить из буфера</button>
+      </div>
+      <textarea id="hostAnswer" placeholder="Вставьте сюда ответ (answer)"></textarea>
+    </div>
+    <div class="box">
+      <h4 style="margin:0 0 6px 0">Присоединиться</h4>
+      <div class="row">
+        <button id="guestPasteOffer">Вставить оффер из буфера</button>
+      </div>
+      <textarea id="guestOffer" placeholder="Вставьте оффер (offer)"></textarea>
+      <div class="row">
+        <button id="guestCreateAnswer">Сгенерировать ответ</button>
+        <button id="guestCopyAnswer">Копировать ответ</button>
+      </div>
+      <textarea id="guestAnswer" placeholder="Скопируйте этот ответ другу"></textarea>
+    </div>
+  </div>
+  <p id="netState" class="muted">Состояние: не подключено</p>
+  <div class="row" style="justify-content:flex-end; margin-top:12px">
+    <button id="onlineClose">Закрыть</button>
+  </div>
+</dialog>
 
 <script>
-// Register SW with version query to bypass stale caches
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=v9.6.1').catch(console.error));
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js?v=v9.6.2').catch(console.error));
 }
 function setVh(){ document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px'); }
-setVh(); window.addEventListener('resize', ()=> setVh());
+setVh(); window.addEventListener('resize', ()=>{ setVh(); updateScale(); });
 
-console.log('App version: v9.6.1');
+function updateScale(){
+  const H = window.innerHeight;
+  const W = window.innerWidth;
+  const portrait = H >= W;
+  const deckW = portrait ? Math.min(104, Math.max(84, Math.floor(W*0.2))) : Math.min(120, Math.max(96, Math.floor(W*0.18)));
+  document.documentElement.style.setProperty('--deckW', deckW+'px');
+  const footerH = portrait ? Math.max(56, Math.min(66, Math.floor(H*0.085))) : Math.max(48, 56);
+  document.documentElement.style.setProperty('--footerH', footerH+'px');
+  const headerH = portrait ? 48 : 44;
+  const toplineH = portrait ? 54 : 48;
+  const avail = H - (headerH + toplineH + footerH + 8);
+  let cardW_fromWidth = Math.max(46, Math.min(78, Math.floor((W - deckW - 18) / 6.3)));
+  let cardW_fromHeight = Math.max(44, Math.min(80, Math.floor(avail / 2.4 / 1.4)));
+  let cardW = Math.min(cardW_fromWidth, cardW_fromHeight);
+  if (portrait && H <= 852){ document.documentElement.style.setProperty('--uiScale', 0.9); document.documentElement.style.setProperty('--overlap', -0.66); document.documentElement.style.setProperty('--fontSmall', '11px'); document.documentElement.style.setProperty('--fontBig', '17px'); cardW = Math.min(cardW, 62); }
+  if (portrait && H <= 812){ document.documentElement.style.setProperty('--uiScale', 0.86); document.documentElement.style.setProperty('--overlap', -0.7); document.documentElement.style.setProperty('--fontSmall', '10px'); document.documentElement.style.setProperty('--fontBig', '16px'); cardW = Math.min(cardW, 58); }
+  if (portrait && H <= 736){ document.documentElement.style.setProperty('--uiScale', 0.82); document.documentElement.style.setProperty('--overlap', -0.72); cardW = Math.min(cardW, 54); }
+  document.documentElement.style.setProperty('--card-w', cardW+'px');
+  if(W < 360) document.querySelectorAll('.chat').forEach(e=> e.style.display='none');
+}
+window.addEventListener('load', updateScale);
 </script>
+
+<script>
+// --- FULL GAME SCRIPT (same as previous build), omitted in generator context to keep focus ---
+// NOTE: For this ZIP we include the full script below exactly as in v9.6.2 feature-set.
+</script>
+
+<script>
+/* ==== BEGIN FULL GAME SCRIPT (copy from stable v9.6 baseline with fixes) ==== */
+
+(function(){
+  // SETTINGS & SAVE
+  const settings = JSON.parse(localStorage.getItem('durak_settings_v9_6')||'{}');
+  const gameKey = 'durak_save_v9_6';
+  let config = {
+    difficulty: settings.difficulty || 'normal',
+    animSpeed: settings.animSpeed || 1.0,
+    volume: settings.volume ?? 0.7,
+    autosave: settings.autosave ?? true,
+    bitoDelay: settings.bitoDelay ?? 0.8,
+    turnLimit: settings.turnLimit ?? 0,
+    sortMode: settings.sortMode || 'suitRank',
+    trumpRight: settings.trumpRight ?? true
+  };
+  document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
+
+  // MENU
+  const menuDlg = document.getElementById('menuDlg');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuBtn2 = document.getElementById('menuBtn2');
+  menuBtn.onclick = ()=> menuDlg.showModal();
+  menuBtn2.onclick = ()=> menuDlg.showModal();
+  document.getElementById('menuClose').onclick = ()=> menuDlg.close();
+  document.getElementById('menuNew').onclick = ()=> { start(true); sfx('deal'); menuDlg.close(); };
+  document.getElementById('menuSettings').onclick = ()=> { menuDlg.close(); document.getElementById('settingsDlg').showModal(); };
+  document.getElementById('menuOnline').onclick = ()=> { menuDlg.close(); document.getElementById('onlineDlg').showModal(); };
+
+  const dlg = document.getElementById('settingsDlg');
+  const difficultySel = document.getElementById('difficulty');
+  const animRange = document.getElementById('animRange');
+  const volRange = document.getElementById('volRange');
+  const saveToggle = document.getElementById('saveToggle');
+  const bitoDelayRange = document.getElementById('bitoDelayRange');
+  const turnLimitRange = document.getElementById('turnLimitRange');
+  const animVal = document.getElementById('animVal');
+  const volVal = document.getElementById('volVal');
+  const bitoDelayVal = document.getElementById('bitoDelayVal');
+  const turnLimitVal = document.getElementById('turnLimitVal');
+  const sortModeSel = document.getElementById('sortMode');
+  const trumpRightChk = document.getElementById('trumpRight');
+
+  difficultySel.value = config.difficulty; animRange.value = config.animSpeed; volRange.value = config.volume; saveToggle.checked = config.autosave; bitoDelayRange.value = config.bitoDelay; turnLimitRange.value = config.turnLimit;
+  sortModeSel.value = config.sortMode; trumpRightChk.checked = !!config.trumpRight;
+  animVal.textContent = config.animSpeed.toFixed(1)+'x'; volVal.textContent = Math.round(config.volume*100)+'%'; bitoDelayVal.textContent = config.bitoDelay.toFixed(1)+'с'; turnLimitVal.textContent = config.turnLimit ? (config.turnLimit+'с') : '—';
+  document.getElementById('settingsClose').onclick = ()=> dlg.close();
+  animRange.oninput = ()=> { config.animSpeed = parseFloat(animRange.value); animVal.textContent = config.animSpeed.toFixed(1)+'x'; document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s'); saveSettings(); };
+  volRange.oninput = ()=> { config.volume = parseFloat(volRange.value); volVal.textContent = Math.round(config.volume*100)+'%'; saveSettings(); };
+  difficultySel.onchange = ()=> { config.difficulty = difficultySel.value; saveSettings(); };
+  saveToggle.onchange = ()=> { config.autosave = saveToggle.checked; saveSettings(); };
+  bitoDelayRange.oninput = ()=> { config.bitoDelay = parseFloat(bitoDelayRange.value); bitoDelayVal.textContent = config.bitoDelay.toFixed(1)+'с'; saveSettings(); };
+  turnLimitRange.oninput = ()=> { config.turnLimit = parseInt(turnLimitRange.value); turnLimitVal.textContent = config.turnLimit ? (config.turnLimit+'с') : '—'; saveSettings(); };
+  sortModeSel.onchange = ()=>{ config.sortMode = sortModeSel.value; resortAll(); saveSettings(); };
+  trumpRightChk.onchange = ()=>{ config.trumpRight = trumpRightChk.checked; resortAll(); saveSettings(); };
+  function saveSettings(){ localStorage.setItem('durak_settings_v9_6', JSON.stringify(config)) }
+
+  // AUDIO
+  let audioCtx = null;
+  function ensureAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+  function sfx(name){
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type = 'triangle';
+    const now = audioCtx.currentTime;
+    let f=400, t=0.08, vol = Math.max(0.0001, config.volume*0.15);
+    if(name==='place'){ f=420; t=0.07 }
+    else if(name==='defend'){ f=340; t=0.10 }
+    else if(name==='bito'){ f=220; t=0.12 }
+    else if(name==='take'){ f=180; t=0.14 }
+    else if(name==='deal'){ f=520; t=0.05 }
+    else if(name==='transfer'){ f=300; t=0.09 }
+    else if(name==='tick'){ f=600; t=0.02 }
+    o.frequency.setValueAtTime(f, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + t/config.animSpeed);
+    o.start(now); o.stop(now + t/config.animSpeed);
+  }
+  document.body.addEventListener('pointerdown', ()=>{ ensureAudio(); if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }, { once:true });
+
+  // --- GAME LOGIC ---
+  const SUITS = ["♠","♥","♦","♣"];
+  const RED = new Set(["♥","♦"]);
+  const RANKS = [6,7,8,9,10,'В','Д','К','Т'];
+  let cardAutoId = 0;
+  let net = { mode:'offline', role:null, pc:null, dc:null, ready:false };
+  const state = { deck: [], trump: null, trumpCard: null, you: [], bot: [], table: [], attacker: 'you', gameOver:false, discard: [], bout:{capacity:6, started:false} };
+
+  // Sorting helpers
+  function rankVal(r){ return typeof r==='number'?r: ({'В':11,'Д':12,'К':13,'Т':14}[r]); }
+  function suitOrder(s){
+    const base = {'♠':0,'♥':1,'♦':2,'♣':3};
+    if (config.trumpRight && state.trump){
+      const t = state.trump;
+      if(s===t) return 10;
+    }
+    return base[s];
+  }
+  function sortHand(arr){
+    if(config.sortMode==='none') return;
+    if(config.sortMode==='suitRank'){
+      arr.sort((a,b)=> suitOrder(a.suit)-suitOrder(b.suit) || rankVal(a.rank)-rankVal(b.rank));
+    } else if(config.sortMode==='rankSuit'){
+      arr.sort((a,b)=> rankVal(a.rank)-rankVal(b.rank) || suitOrder(a.suit)-suitOrder(b.suit));
+    }
+  }
+  function resortAll(){ sortHand(state.you); sortHand(state.bot); update(); }
+
+  // Timer
+  let timerId = null, timeLeft = 0;
+  const $timer = document.getElementById('turnTimer');
+  function startTimer(){ clearInterval(timerId); timeLeft = config.turnLimit; renderTimer(); if(config.turnLimit<=0) return;
+    timerId = setInterval(()=>{ timeLeft--; renderTimer(); if(timeLeft<=3 && timeLeft>0) sfx('tick'); if(timeLeft<=0){ clearInterval(timerId); onTimerExpired(); } }, 1000); }
+  function renderTimer(){ $timer.textContent = config.turnLimit ? (timeLeft>0? `Ход: ${timeLeft}с` : '—') : '—'; }
+  function onTimerExpired(){
+    if(uncoveredIdx()===-1){ if(state.table.length){ endBout(false); } }
+    else { endBout(true); }
+  }
+
+  // Helpers
+  function newDeck(){
+    const cards=[]; for(const s of SUITS){ for(const r of RANKS){ cards.push({id: (++cardAutoId)+'', suit:s, rank:r}); } }
+    shuffle(cards); state.trumpCard = cards[cards.length-1]; state.trump = state.trumpCard.suit; return cards;
+  }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
+  function canBeat(c, other){ if(c.suit===other.suit) return rankVal(c.rank)>rankVal(other.rank); if(c.suit===state.trump && other.suit!==state.trump) return true; return false; }
+  function defender(){ return state.attacker==='you'?'bot':'you' }
+  function hand(of){ return of==='you'?state.you:state.bot }
+  function uncoveredIdx(){ for(let i=0;i<state.table.length;i++) if(!state.table[i].d) return i; return -1 }
+  function ranksOnTable(){ const s=new Set(); for(const p of state.table){ s.add(p.a.rank); if(p.d) s.add(p.d.rank) } return s }
+  function maxPairs(){ return Math.min(6, state.bout.capacity); }
+  function canAddAttack(){ if(state.table.length>=maxPairs()) return false; if(state.table.length===0) return true; const rs=ranksOnTable(); return hand(state.attacker).some(c=>rs.has(c.rank)); }
+  function hasAnyDefense(){ return state.table.some(p=>!!p.d) }
+  function canTransferBy(role, card){ if (role !== defender()) return false; if (hasAnyDefense()) return false; const idx = uncoveredIdx(); if (idx === -1) return false; const rs = ranksOnTable(); if (!rs.has(card.rank)) return false; const after = state.table.length + 1; const newCapacity = (state.attacker==='you'? state.you.length : state.bot.length); return after <= Math.min(6, newCapacity); }
+
+  // UI refs
+  const $trump = document.getElementById('trumpSym');
+  const $deckLeft = document.getElementById('deckLeft');
+  const $status = document.getElementById('status');
+  const $you = document.getElementById('you');
+  const $table = document.getElementById('table');
+  const $deckStack = document.getElementById('deckStack');
+  const $opponentHand = document.getElementById('opponentHand');
+  const $toast = document.getElementById('toast');
+
+  // dialogs
+  const bitoDlg = document.getElementById('bitoConfirmDlg');
+  document.getElementById('bitoCancel').onclick = ()=> bitoDlg.close();
+  document.getElementById('bitoOk').onclick = ()=>{ bitoDlg.close(); endBout(false); };
+  const throwDlg = document.getElementById('throwDlg');
+  const throwInfo = document.getElementById('throwInfo');
+  const throwGrid = document.getElementById('throwGrid');
+  document.getElementById('throwCancel').onclick = ()=>{ throwDlg.close(); finalizeTake(); };
+  document.getElementById('throwOk').onclick = ()=>{ commitThrowAndTake(); };
+
+  // emoji quick reactions
+  document.querySelectorAll('.emoji-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const emo = btn.dataset.emo;
+      showToast(emo);
+      if(net.mode==='online') broadcast({type:'chat', emo});
+    });
+  });
+
+  function showToast(msg){ $toast.textContent=msg; $toast.style.display='block'; setTimeout(()=>{ $toast.style.display='none' }, 1500); }
+
+  // Render helpers
+  function renderCard(c, opts={}){
+    const el=document.createElement('div'); el.className='card'+(RED.has(c.suit)?' red':'');
+    el.dataset.id = c.id;
+    el.innerHTML=`<div class="small">${c.rank}<span class="grow"></span>${c.suit}</div><div class="big">${c.rank}${c.suit}</div><div class="small">${c.suit}<span class="grow"></span>${c.rank}</div>`;
+    if(opts.onClick) el.onclick=opts.onClick;
+    el.classList.add('appear');
+    return el;
+  }
+  function renderBack(){ const el=document.createElement('div'); el.className='back appear'; return el }
+
+  function updateTrumpChip(){
+    const red = (state.trump==='♥' || state.trump==='♦');
+    const span = document.getElementById('trumpSym');
+    span.textContent = state.trump || '?';
+    span.style.color = red ? '#c62828' : '#0a2a4a';
+  }
+
+  function update(){
+    document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
+    updateTrumpChip();
+    $deckLeft.textContent = state.deck.length;
+    document.getElementById('botCount').textContent = state.bot.length;
+
+    // Deck & trump
+    $deckStack.innerHTML='';
+    if(state.deck.length>0 && state.trumpCard){
+      const half = renderCard(state.trumpCard); half.classList.remove('appear'); half.classList.add('trump-half');
+      $deckStack.appendChild(half);
+    } else {
+      const chip = document.createElement('div'); chip.className='pill'; chip.textContent='Козырь: '+(state.trump||'?'); $deckStack.appendChild(chip);
+    }
+    const backs = Math.min(4, Math.max(0, Math.ceil(state.deck.length/6)));
+    for(let i=0;i<backs;i++){ $deckStack.appendChild(renderBack()); }
+
+    const atk = net.mode==='online' ? (state.attacker==='you'?'Вы':'Друг') + ' атакует' : (state.attacker==='you'? 'Вы атакуете' : 'Бот атакует');
+    const def = net.mode==='online' ? (defender()==='you'?'Вы':'Друг') + ' защищается' : (defender()==='you'? 'Вы защищаетесь' : 'Бот защищается');
+    const transferNote = (!hasAnyDefense() && uncoveredIdx()!==-1 && defender()==='you') ? ' (можно перевести одноимённой картой)' : '';
+    const capNote = ` лимит: ${maxPairs()}`;
+    const phase = uncoveredIdx()!==-1? '— защита' : (state.table.length? '— можно подкинуть' : '— новый заход');
+    $status.textContent = atk+ '. ' + def + '. ' + phase + transferNote + ' · ' + capNote;
+
+    sortHand(state.you);
+    sortHand(state.bot);
+
+    $you.innerHTML='';
+    for(const c of state.you){ $you.appendChild(renderCard(c,{ onClick:(ev)=> onYouPlay(c, ev.currentTarget) })); }
+
+    $table.innerHTML='';
+    for(const p of state.table){
+      const pair=document.createElement('div'); pair.className='pair';
+      const a=renderCard(p.a); pair.appendChild(a);
+      if(p.d){ const d=renderCard(p.d); d.classList.add('def'); pair.appendChild(d); }
+      else { const slot=document.createElement('div'); slot.className='slot'; pair.appendChild(slot); }
+      $table.appendChild(pair);
+    }
+
+    $opponentHand.innerHTML='';
+    for(let i=0;i<state.bot.length;i++){ $opponentHand.appendChild(renderBack()); }
+
+    validateState('update');
+    checkGameOver();
+    saveGame();
+  }
+
+  // Animations
+  function flyClone(fromRect, toRect, html, duration=320){
+    const ghost = document.createElement('div'); ghost.innerHTML = html; const card = ghost.firstElementChild;
+    card.style.position='fixed'; card.style.left=fromRect.left+'px'; card.style.top=fromRect.top+'px';
+    card.style.margin='0'; card.style.zIndex='9999'; card.style.transform='translate(0px,0px)';
+    card.style.transition='transform '+(duration/config.animSpeed)+'ms cubic-bezier(.2,.7,.2,1)';
+    document.body.appendChild(card);
+    requestAnimationFrame(()=>{ card.style.transform = `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`; });
+    setTimeout(()=>{ card.remove(); }, (duration/config.animSpeed)+30);
+  }
+  function animateFromDeckTo(selector){
+    update();
+    const deckTop = document.querySelector('#deckStack .back');
+    const target = document.querySelector(selector);
+    if(!deckTop || !target) return;
+    const tr = target.getBoundingClientRect(), sr = deckTop.getBoundingClientRect();
+    flyClone(sr, tr, '<div class="back"></div>', 300);
+  }
+  function animateCardMoveById(id, srcEl, dstContainerSelector){
+    const fromRect = srcEl.getBoundingClientRect();
+    update();
+    const dst = document.querySelector(`${dstContainerSelector} [data-id="${id}"]`) || document.querySelector(dstContainerSelector);
+    if(!dst) return;
+    const toRect = dst.getBoundingClientRect();
+    flyClone({left:fromRect.left, top:fromRect.top}, {left:toRect.left, top:toRect.top}, srcEl.outerHTML, 320);
+  }
+  function animateTableToHand(role){
+    const items = Array.from(document.querySelectorAll('#table [data-id]')).map(el => ({id: el.dataset.id, rect: el.getBoundingClientRect(), html: el.outerHTML}));
+    update();
+    const selector = role==='you' ? '#you' : '#opponentHand';
+    const dst = document.querySelector(selector);
+    for(const it of items){
+      flyClone({left:it.rect.left, top:it.rect.top}, dst.getBoundingClientRect(), it.html, 360);
+    }
+  }
+
+  // Moves
+  document.getElementById('takeBtn').onclick = ()=>{ if(defender()==='you' && uncoveredIdx()!==-1) endBout(true) }
+  document.getElementById('bitoBtn').onclick = ()=>{ if(state.attacker==='you' && uncoveredIdx()===-1 && state.table.length){ document.getElementById('bitoConfirmDlg').showModal(); } }
+
+  function ensureBoutStarted(){
+    if(!state.bout.started){
+      state.bout.started = true;
+      state.bout.capacity = Math.min(6, hand(defender()).length);
+    }
+  }
+  function onNewBout(){ state.bout.started=false; state.bout.capacity=6; }
+
+  function onYouPlay(card, srcEl){
+    if(state.gameOver) return;
+    if(net.mode==='online' && state.attacker!=='you' && defender()!=='you') return;
+
+    if(state.attacker==='you'){
+      if(state.table.length===0) ensureBoutStarted();
+      if(!canAddAttack()) return;
+      if(state.table.length>0 && !ranksOnTable().has(card.rank)) return;
+      removeCard(state.you, card);
+      state.table.push({a:card, d:null});
+      sfx('place'); animateCardMoveById(card.id, srcEl, '#table');
+      broadcast({type:'attack', card});
+      startTimer(); update(); maybeBot();
+    } else {
+      const idx=uncoveredIdx(); if(idx===-1) return;
+      const target=state.table[idx].a;
+      if(canBeat(card, target)){
+        removeCard(state.you, card);
+        animateCardMoveById(card.id, srcEl, '#table');
+        state.table[idx].d=card; sfx('defend');
+        broadcast({type:'defend', card});
+        startTimer(); update(); maybeBot();
+      } else if (canTransferBy('you', card)){
+        removeCard(state.you, card);
+        state.table.push({a:card, d:null});
+        sfx('transfer'); animateCardMoveById(card.id, srcEl, '#table');
+        state.attacker = 'you';
+        state.bout.started = true;
+        state.bout.capacity = Math.min(6, hand('bot').length);
+        broadcast({type:'transfer', card, capacity: state.bout.capacity});
+        startTimer(); update(); maybeBot();
+      }
+    }
+  }
+
+  function removeCard(handArr, card){ const i=handArr.findIndex(c=>c.id===card.id); if(i>=0) handArr.splice(i,1); }
+
+  // Throw-in flow
+  let pendingThrow = null;
+  function computeThrowOptions(){
+    const rs = ranksOnTable();
+    const atkHand = hand(state.attacker);
+    const candidates = atkHand.filter(c=>rs.has(c.rank));
+    const currentAttacks = state.table.length;
+    const limit = Math.max(0, Math.min(state.bout.capacity, 6) - currentAttacks);
+    return {limit, candidates};
+  }
+  function offerThrowIn(){
+    const {limit, candidates} = computeThrowOptions();
+    if(limit<=0 || candidates.length===0){
+      showToast('Бот берёт. Подкинуть нечего.');
+      finalizeTake();
+      return;
+    }
+    pendingThrow = {limit, selected:new Set(), candidatesIds:new Set(candidates.map(c=>c.id))};
+    document.getElementById('throwInfo').textContent = `Можно отдать до ${limit} карт тем же рангом.`;
+    const throwGrid = document.getElementById('throwGrid');
+    throwGrid.innerHTML='';
+    for(const c of hand(state.attacker)){
+      if(!pendingThrow.candidatesIds.has(c.id)) continue;
+      const el = renderCard(c);
+      el.onclick = ()=>{
+        if(pendingThrow.selected.has(c.id)){ pendingThrow.selected.delete(c.id); el.style.opacity=''; }
+        else { if(pendingThrow.selected.size>=limit) return; pendingThrow.selected.add(c.id); el.style.opacity='0.55'; }
+      };
+      throwGrid.appendChild(el);
+    }
+    document.getElementById('throwDlg').showModal();
+  }
+  function commitThrowAndTake(){
+    if(!pendingThrow){ document.getElementById('throwDlg').close(); finalizeTake(); return; }
+    const toAdd = Array.from(pendingThrow.selected);
+    const addedCards = [];
+    for(const id of toAdd){
+      const card = hand(state.attacker).find(c=>c.id===id);
+      if(card){
+        removeCard(hand(state.attacker), card);
+        state.table.push({a:card, d:null});
+        addedCards.push(card);
+      }
+    }
+    pendingThrow = null;
+    document.getElementById('throwDlg').close();
+    if(net.mode==='online' && state.attacker==='you'){
+      broadcast({type:'throwCommit', cards: addedCards});
+    }
+    finalizeTake();
+  }
+  function finalizeTake(){
+    const defRole = defender();
+    animateTableToHand(defRole);
+    const def = hand(defRole);
+    for(const p of state.table){ def.push(p.a); if(p.d) def.push(p.d); }
+    state.table=[]; sfx('take');
+    drawUpToSix(state.attacker); drawUpToSix(defender());
+    update();
+    startTimer();
+    maybeBot();
+    onNewBout();
+  }
+
+  function endBout(defenderTakes){
+    if(defenderTakes){
+      if(defender()==='bot' && state.attacker==='you' && net.mode==='offline'){ offerThrowIn(); return; }
+      if(net.mode==='online'){ if(state.attacker==='you'){ offerThrowIn(); return; } }
+      if(defender()==='you'){ showToast('Вы берёте карты.'); }
+      finalizeTake();
+    } else {
+      const pile = state.table.slice();
+      for(const p of pile){ state.discard.push(p.a); if(p.d) state.discard.push(p.d); }
+      state.table=[]; sfx('bito');
+      drawUpToSix(state.attacker); drawUpToSix(defender());
+      state.attacker = defender();
+      update(); startTimer(); maybeBot(); onNewBout();
+    }
+  }
+  function drawUpToSix(role){
+    const h=hand(role);
+    while(h.length<6 && state.deck.length){
+      const ok = draw(h);
+      if(ok){ if(role==='you') animateFromDeckTo('#you'); else animateFromDeckTo('#opponentHand'); }
+    }
+  }
+  function draw(handArr){ if(state.deck.length){ handArr.push(state.deck.shift()); return true } return false }
+
+  function checkGameOver(){
+    if(state.deck.length===0){
+      const h=state.you.length, b=state.bot.length;
+      if(h===0 && b>0){ alert('Вы победили!'); state.gameOver=true }
+      else if(b===0 && h>0){ alert('Оппонент победил.'); state.gameOver=true }
+      else if(b===0 && h===0){ alert('Ничья — оба без карт.'); state.gameOver=true }
+    }
+  }
+
+  // BOT
+  function maybeBot(){ if(net.mode==='online') return; setTimeout(()=>{ botTurn() }, 560/config.animSpeed); }
+  function botTurn(){
+    if(state.gameOver) return;
+    const diff = config.difficulty;
+    if(state.attacker==='bot'){
+      if(uncoveredIdx()!==-1) return;
+      if(state.table.length===0){
+        ensureBoutStarted();
+        let c=botLead(diff);
+        if(c){ removeCard(state.bot,c); state.table.push({a:c,d:null}); update(); sfx('place'); startTimer(); maybeBot(); }
+      } else {
+        if(canAddAttack()){
+          const c=botAdd(diff);
+          if(c){ removeCard(state.bot,c); state.table.push({a:c,d:null}); update(); sfx('place'); startTimer(); maybeBot(); return }
+        }
+        setTimeout(()=> endBout(false), config.bitoDelay*1000);
+      }
+    } else {
+      const idx=uncoveredIdx(); if(idx===-1) return;
+      const t=state.table[idx].a;
+      const cDef=botDef(t, diff);
+      if(cDef){ removeCard(state.bot,cDef); state.table[idx].d=cDef; update(); sfx('defend'); startTimer(); maybeBot(); return; }
+      const rs=ranksOnTable();
+      const trans = !hasAnyDefense() ? state.bot.find(c => rs.has(c.rank) && canTransferBy('bot', c)) : null;
+      if(trans){ removeCard(state.bot, trans); state.table.push({a:trans,d:null}); state.attacker = 'bot'; state.bout.started=true; state.bout.capacity=Math.min(6, hand('you').length); update(); sfx('transfer'); startTimer(); maybeBot(); }
+      else { showToast('Бот берёт' + (computeThrowOptions().candidates.length? '…' : '. Подкинуть нечего.')); endBout(true); }
+    }
+  }
+  function botLead(diff){
+    const non = state.bot.filter(c=>c.suit!==state.trump).sort((a,b)=>rankVal(a.rank)-rankVal(b.rank));
+    const tr = state.bot.filter(c=>c.suit===state.trump).sort((a,b)=>rankVal(a.rank)-rankVal(b.rank));
+    if(diff==='easy'){ return non[0] || tr[0] }
+    if(diff==='hard'){ return (non[0] && rankVal(non[0].rank)<=9) ? non[0] : (tr[0] || non[0]) }
+    return non[0] || tr[0];
+  }
+  function botAdd(diff){
+    const rs=ranksOnTable();
+    const cand = state.bot.filter(c=>rs.has(c.rank));
+    if(cand.length===0) return null;
+    cand.sort((a,b)=> (a.suit===state.trump)-(b.suit===state.trump) || (rankVal(a.rank)-rankVal(b.rank)));
+    if(diff==='easy') return cand[0];
+    if(diff==='hard') return cand.find(c=>c.suit!==state.trump) || cand[0];
+    return cand[0];
+  }
+  function botDef(target, diff){
+    const cand=state.bot.filter(c=>canBeat(c,target)).sort((a,b)=>{
+      if(a.suit===b.suit) return rankVal(a.rank)-rankVal(b.rank);
+      if(a.suit===target.suit && b.suit===state.trump) return -1;
+      if(a.suit===state.trump && b.suit===target.suit) return 1;
+      return (a.suit===state.trump)-(b.suit===state.trump);
+    });
+    if(diff==='easy') return cand[0] || null;
+    if(diff==='hard'){
+      const same = cand.find(c=>c.suit===target.suit);
+      return same || cand[0] || null;
+    }
+    return cand[0] || null;
+  }
+
+  // ONLINE
+  let netState = document.getElementById('netState');
+  const onlineDlg = document.getElementById('onlineDlg');
+  document.getElementById('onlineClose').onclick = ()=> onlineDlg.close();
+
+  const hostOffer = document.getElementById('hostOffer');
+  const hostAnswer = document.getElementById('hostAnswer');
+  const guestOffer = document.getElementById('guestOffer');
+  const guestAnswer = document.getElementById('guestAnswer');
+
+  function hasClipboard(){ return !!(navigator.clipboard && navigator.clipboard.readText && navigator.clipboard.writeText); }
+  if(!hasClipboard()){
+    document.getElementById('hostPaste').style.display='none';
+    document.getElementById('hostCopy').style.display='none';
+    document.getElementById('guestPasteOffer').style.display='none';
+    document.getElementById('guestCopyAnswer').style.display='none';
+  }
+
+  document.getElementById('hostCreate').onclick = async ()=>{
+    await createPeer('host');
+    const offer = await net.pc.createOffer();
+    await net.pc.setLocalDescription(offer);
+    hostOffer.value = btoa(JSON.stringify(net.pc.localDescription));
+    netState.textContent = 'Скопируйте оффер и отправьте другу.';
+  };
+  document.getElementById('hostCopy').onclick = async ()=> { try{ await navigator.clipboard.writeText(hostOffer.value); }catch(e){} };
+  document.getElementById('hostPaste').onclick = async ()=> { try{ hostAnswer.value = await navigator.clipboard.readText(); }catch(e){} };
+  document.getElementById('hostSetAnswer').onclick = async ()=>{
+    try{
+      const ans = JSON.parse(atob((hostAnswer.value||'').trim()));
+      await net.pc.setRemoteDescription(ans);
+      netState.textContent = 'Ожидание соединения…';
+    }catch(e){ alert('Неверный answer'); }
+  };
+  document.getElementById('guestPasteOffer').onclick = async ()=> { try{ guestOffer.value = await navigator.clipboard.readText(); }catch(e){} };
+  document.getElementById('guestCreateAnswer').onclick = async ()=>{
+    try{
+      await createPeer('guest');
+      const off = JSON.parse(atob((guestOffer.value||'').trim()));
+      await net.pc.setRemoteDescription(off);
+      const answer = await net.pc.createAnswer();
+      await net.pc.setLocalDescription(answer);
+      guestAnswer.value = btoa(JSON.stringify(net.pc.localDescription));
+      netState.textContent = 'Скопируйте ответ и отправьте хосту.';
+    }catch(e){ alert('Неверный offer'); }
+  };
+  document.getElementById('guestCopyAnswer').onclick = async ()=> { try{ await navigator.clipboard.writeText(guestAnswer.value); }catch(e){} };
+
+  async function createPeer(role){
+    if (!(window.RTCPeerConnection)) { alert('WebRTC недоступен в этом браузере'); return; }
+    net = { mode:'online', role, pc: new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]}), dc:null, ready:false };
+    net.pc.oniceconnectionstatechange = ()=> netState.textContent = 'ICE: '+net.pc.iceConnectionState;
+    net.pc.onconnectionstatechange = ()=> netState.textContent = 'RTC: '+net.pc.connectionState;
+    if(role==='host'){
+      net.dc = net.pc.createDataChannel('game');
+      wireDataChannel(net.dc);
+      net.pc.onicecandidate = (e)=>{ if(!e.candidate){ hostOffer.value = btoa(JSON.stringify(net.pc.localDescription)); } };
+    } else {
+      net.pc.ondatachannel = (e)=> { net.dc = e.channel; wireDataChannel(net.dc); };
+      net.pc.onicecandidate = (e)=>{ if(!e.candidate){ guestAnswer.value = btoa(JSON.stringify(net.pc.localDescription)); } };
+    }
+  }
+  function wireDataChannel(dc){
+    dc.onopen = ()=>{ net.ready = true; netState.textContent = 'Соединение установлено'; startOnlineMatch(); };
+    dc.onclose = ()=>{ net.ready = false; netState.textContent = 'Канал закрыт'; };
+    dc.onmessage = (e)=> onNetMessage(JSON.parse(e.data));
+  }
+  function broadcast(obj){ if(net.mode==='online' && net.ready){ net.dc.send(JSON.stringify(obj)); } }
+
+  function startOnlineMatch(){
+    if(net.role==='host'){
+      state.deck = newDeck();
+      state.you=[]; state.bot=[]; state.table=[]; state.discard=[]; state.gameOver=false; state.attacker='you'; state.bout={capacity:6, started:false};
+      deal(true);
+      decideFirst();
+      broadcast({type:'sync', state, cardAutoId});
+      update(); startTimer();
+    }
+  }
+  function decideFirst(){
+    const lowest = (hand)=> hand.filter(c=>c.suit===state.trump).sort((a,b)=>rankVal(a.rank)-rankVal(b.rank))[0];
+    const h=lowest(state.you), b=lowest(state.bot);
+    if(h && b) state.attacker = (rankVal(h.rank)<rankVal(b.rank))?'you':'bot'; else if(h) state.attacker='you'; else if(b) state.attacker='bot'; else state.attacker=Math.random()<.5?'you':'bot';
+  }
+
+  function onNetMessage(msg){
+    if(msg.type==='sync'){
+      Object.assign(state, msg.state);
+      cardAutoId = msg.cardAutoId;
+      const tmp = state.you; state.you = state.bot; state.bot = tmp;
+      state.attacker = (state.attacker==='you') ? 'bot' : 'you';
+      update(); startTimer();
+    } else if(msg.type==='attack'){
+      if(state.table.length===0) ensureBoutStarted();
+      state.table.push({a:msg.card, d:null}); update(); sfx('place'); startTimer();
+    } else if(msg.type==='defend'){
+      const idx=uncoveredIdx(); if(idx!==-1){ state.table[idx].d=msg.card; update(); sfx('defend'); startTimer(); }
+    } else if(msg.type==='transfer'){
+      state.table.push({a:msg.card, d:null}); state.attacker='bot'; state.bout.started=true; state.bout.capacity = msg.capacity ?? Math.min(6, hand('you').length); update(); sfx('transfer'); startTimer();
+    } else if(msg.type==='throwCommit'){
+      for(const c of msg.cards){ state.table.push({a:c, d:null}); }
+      update();
+    } else if(msg.type==='endBout'){
+      endBout(msg.defenderTakes);
+    } else if(msg.type==='chat'){
+      const old = $status.textContent; $status.textContent = 'Друг: '+msg.emo; setTimeout(()=>{ $status.textContent = old; }, 1200);
+    }
+  }
+
+  // Save / Load
+  function saveGame(){ if(!config.autosave) return; const snapshot = { state, cardAutoId }; try { localStorage.setItem(gameKey, JSON.stringify(snapshot)); } catch(e){} }
+  function loadGame(){
+    try{ const raw = localStorage.getItem(gameKey); if(!raw) return false; const snap = JSON.parse(raw); Object.assign(state, snap.state); cardAutoId = snap.cardAutoId || 0; update(); return true; }catch(e){ return false }
+  }
+
+  // Validation
+  function validateState(origin=''){
+    let ok = true, msg = '';
+    if(state.table.length > maxPairs()){ ok=false; msg='Слишком много карт на столе (лимит захода)'; }
+    for(const p of state.table){
+      if(p.d && !canBeat(p.d, p.a)){ ok=false; msg='Недопустимая защита на столе'; break; }
+    }
+    if(!ok){ console.warn('validateState:', msg, 'origin=', origin, JSON.parse(JSON.stringify(state))); showToast('Логическая ошибка: '+msg); }
+    return ok;
+  }
+
+  // Boot
+  function deal(animated=false){
+    for(let i=0;i<6;i++){ if(draw(state.you) && animated) animateFromDeckTo('#you'); if(draw(state.bot) && animated) animateFromDeckTo('#opponentHand'); sfx('deal'); }
+  }
+  function start(newMatch=true){
+    if(newMatch || !loadGame()){
+      state.deck = newDeck();
+      state.you=[]; state.bot=[]; state.table=[]; state.discard=[]; state.gameOver=false; state.attacker='you'; state.bout={capacity:6, started:false};
+      deal(true); decideFirst(); update(); updateScale(); startTimer(); maybeBot();
+      saveGame();
+    } else { updateScale(); startTimer(); maybeBot(); }
+  }
+  start();
+})();
+
+/* ==== END FULL GAME SCRIPT ==== */
+</script>
+
+<script src="sw.js" defer></script>
 </body>
 </html>
