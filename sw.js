@@ -1,4 +1,4 @@
-const CACHE = 'durak-cache-v9-2';
+const CACHE = 'durak-cache-v9-3-stable';
 const ASSETS = [
   './',
   './index.html',

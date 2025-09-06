@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Дурак — PWA v9.2</title>
+<title>Дурак — PWA v9.3 (stable)</title>
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f6b50">
@@ -14,7 +14,7 @@
 <style>
   :root{
     --vw: min(100vw, 430px);
-    --vh: 100dvh;
+    --vh: 1vh; /* will be updated by JS to fix iOS */
     --card-w: clamp(56px, calc(var(--vw)/6.0), 78px);
     --card-h: calc(var(--card-w) * 1.4);
     --pad: max(8px, env(safe-area-inset-left));
@@ -22,7 +22,7 @@
     --pad-b: max(8px, env(safe-area-inset-bottom));
   }
   *{box-sizing:border-box}
-  html, body { height: var(--vh); overflow: hidden; }
+  html, body { height: calc(var(--vh) * 100); overflow: hidden; }
   body{
     margin:0;
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;
@@ -30,11 +30,11 @@
     padding:0;
   }
   #root{
-    height: var(--vh);
+    height: calc(var(--vh) * 100);
     max-width: 1100px;
     margin: 0 auto;
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto 1fr;
   }
   header{
     display:flex;gap:10px;align-items:center;justify-content:space-between;
@@ -50,7 +50,6 @@
   .muted{opacity:.72}
   .topline{display:flex; justify-content:space-between; align-items:center; padding:0 var(--pad);}
 
-  /* Middle board area fills available space, no scroll */
   .middle{
     display:grid;
     grid-template-columns: 1fr minmax(120px, 160px);
@@ -61,7 +60,7 @@
   }
   .leftCol{
     display:grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr auto;
     gap:8px;
     min-width: 0;
   }
@@ -75,7 +74,7 @@
   .pair{position:relative; width:var(--card-w); height:calc(var(--card-h)+18px)}
   .slot{position:absolute; width:var(--card-w); height:var(--card-h); border:2px dashed #0003; border-radius:10px; top:0}
   .def{position:absolute; top:14px; left:16px; transform:rotate(-10deg)}
-  .hand{display:flex; gap: calc(var(--card-w) * -0.55); padding: 6px var(--pad) 8px var(--pad); overflow:hidden}
+  .hand{display:flex; gap: calc(var(--card-w) * -0.55); padding: 6px var(--pad) 10px var(--pad); overflow:hidden}
   .box{display:flex; flex-direction:column; gap:6px; align-items:stretch; padding:10px; border-radius:18px; background:#fff7; box-shadow:inset 0 0 0 1px #0001; height: fit-content}
   .stack{position:relative; width:calc(var(--card-w)+12px); height:calc(var(--card-h)+12px)}
   .stack .back{position:absolute; top:0; left:0; transform-origin:bottom right}
@@ -83,7 +82,6 @@
   .stack .back:nth-child(2){transform:translate(6px,4px) rotate(1deg)}
   .stack .back:nth-child(3){transform:translate(12px,8px) rotate(2deg)}
   .stack .back:nth-child(4){transform:translate(18px,12px) rotate(3deg)}
-  /* Trump half under stack, fixed perpendicular, no transitions */
   .trump-half{
     position:absolute; bottom:-8px; left:-22px;
     transform:rotate(90deg);
@@ -106,6 +104,10 @@
   .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(14px + env(safe-area-inset-bottom)); background:#1b5e20; color:#fff; padding:8px 12px; border-radius:999px; box-shadow:0 6px 24px #0005; display:none; z-index:99999}
   dialog{border:none; border-radius:16px; padding:16px; box-shadow:0 10px 40px #0003; max-width:92vw;width:clamp(280px,78vw,420px)}
   dialog::backdrop{background:rgba(0,0,0,.25)}
+  .grid-cards{display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap:10px; max-height:44vh; overflow:auto}
+
+  /* Error overlay */
+  #errorOverlay{ position:fixed; inset:auto 8px 8px 8px; background:#ffebee; color:#b71c1c; border:1px solid #f44336; border-radius:12px; padding:10px; font-size:12px; box-shadow:0 8px 24px #0003; display:none; max-height:40vh; overflow:auto; z-index:999999 }
 </style>
 </head>
 <body>
@@ -152,6 +154,7 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<div id="errorOverlay"></div>
 
 <!-- Confirm Bito -->
 <dialog id="bitoConfirmDlg">
@@ -256,16 +259,33 @@
 </dialog>
 
 <script>
-if ('serviceWorker' in navigator) {
+// SW only on secure origins to avoid failures when opened from file://
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
 }
+// iOS 100dvh fallback
+function setVh(){ document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px'); }
+setVh(); window.addEventListener('resize', setVh);
+
+// Global error overlay
+(function(){
+  const overlay = document.getElementById('errorOverlay');
+  window.addEventListener('error', (e)=>{
+    overlay.style.display='block';
+    overlay.textContent = 'Ошибка: ' + (e.message||e.error) + '\\n' + (e.filename||'') + ':' + (e.lineno||'') + ':' + (e.colno||'');
+  });
+  window.addEventListener('unhandledrejection', (e)=>{
+    overlay.style.display='block';
+    overlay.textContent = 'Необработанное исключение: ' + (e.reason && (e.reason.message||e.reason)) ;
+  });
+})();
 </script>
 
 <script>
 (function(){
   // SETTINGS & SAVE
-  const settings = JSON.parse(localStorage.getItem('durak_settings_v9_2')||'{}');
-  const gameKey = 'durak_save_v9_2';
+  const settings = JSON.parse(localStorage.getItem('durak_settings_v9_3')||'{}');
+  const gameKey = 'durak_save_v9_3';
   let config = { difficulty: settings.difficulty || 'normal', animSpeed: settings.animSpeed || 1.0, volume: settings.volume ?? 0.7, autosave: settings.autosave ?? true, bitoDelay: settings.bitoDelay ?? 0.8, turnLimit: settings.turnLimit ?? 0 };
   document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
 
@@ -297,7 +317,7 @@ if ('serviceWorker' in navigator) {
   saveToggle.onchange = ()=> { config.autosave = saveToggle.checked; saveSettings(); };
   bitoDelayRange.oninput = ()=> { config.bitoDelay = parseFloat(bitoDelayRange.value); bitoDelayVal.textContent = config.bitoDelay.toFixed(1)+'с'; saveSettings(); };
   turnLimitRange.oninput = ()=> { config.turnLimit = parseInt(turnLimitRange.value); turnLimitVal.textContent = config.turnLimit ? (config.turnLimit+'с') : '—'; saveSettings(); };
-  function saveSettings(){ localStorage.setItem('durak_settings_v9_2', JSON.stringify(config)) }
+  function saveSettings(){ localStorage.setItem('durak_settings_v9_3', JSON.stringify(config)) }
 
   // AUDIO
   let audioCtx = null;
@@ -325,7 +345,7 @@ if ('serviceWorker' in navigator) {
   }
   document.body.addEventListener('pointerdown', ()=>{ ensureAudio(); if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }, { once:true });
 
-  // STATE (copied from v9.1 with single-screen UI)
+  // STATE / GAME
   const SUITS = ["♠","♥","♦","♣"];
   const RED = new Set(["♥","♦"]);
   const RANKS = [6,7,8,9,10,'В','Д','К','Т'];
@@ -366,15 +386,10 @@ if ('serviceWorker' in navigator) {
   const $deckLeft = document.getElementById('deckLeft');
   const $status = document.getElementById('status');
   const $you = document.getElementById('you');
-  const $youCount = document.getElementById('youCount');
-  const $botCount = document.getElementById('botCount');
   const $table = document.getElementById('table');
-  const $take = document.getElementById('takeBtn');
-  const $bito = document.getElementById('bitoBtn');
   const $deckStack = document.getElementById('deckStack');
   const $opponentHand = document.getElementById('opponentHand');
   const $toast = document.getElementById('toast');
-  const $botCountSpan = document.getElementById('botCount');
 
   // dialogs
   const bitoDlg = document.getElementById('bitoConfirmDlg');
@@ -385,6 +400,15 @@ if ('serviceWorker' in navigator) {
   const throwGrid = document.getElementById('throwGrid');
   document.getElementById('throwCancel').onclick = ()=>{ throwDlg.close(); finalizeTake(); };
   document.getElementById('throwOk').onclick = ()=>{ commitThrowAndTake(); };
+
+  // emoji quick reactions
+  document.querySelectorAll('.emoji-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const emo = btn.dataset.emo;
+      showToast(emo);
+      if(net.mode==='online') broadcast({type:'chat', emo});
+    });
+  });
 
   function showToast(msg){ $toast.textContent=msg; $toast.style.display='block'; setTimeout(()=>{ $toast.style.display='none' }, 1500); }
 
@@ -403,15 +427,12 @@ if ('serviceWorker' in navigator) {
     document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
     $trump.textContent = state.trump||'?';
     $deckLeft.textContent = state.deck.length;
-    $youCount.textContent = state.you.length; $botCountSpan.textContent = state.bot.length;
+    document.getElementById('botCount').textContent = state.bot.length;
 
-    // Deck & trump half UNDER stack
+    // Deck & trump
     $deckStack.innerHTML='';
-    // add trump first (lower z), then backs
     if(state.deck.length>0 && state.trumpCard){
-      const half = renderCard(state.trumpCard);
-      half.classList.remove('appear'); // avoid transform animation
-      half.classList.add('trump-half');
+      const half = renderCard(state.trumpCard); half.classList.remove('appear'); half.classList.add('trump-half');
       $deckStack.appendChild(half);
     } else {
       const chip = document.createElement('div'); chip.className='pill'; chip.textContent='Козырь: '+(state.trump||'?'); $deckStack.appendChild(chip);
@@ -438,7 +459,6 @@ if ('serviceWorker' in navigator) {
       $table.appendChild(pair);
     }
 
-    // Opponent visible backs
     $opponentHand.innerHTML='';
     for(let i=0;i<state.bot.length;i++){ $opponentHand.appendChild(renderBack()); }
 
@@ -623,7 +643,7 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // BOT (auto-take fix preserved)
+  // BOT
   function maybeBot(){ if(net.mode==='online') return; setTimeout(()=>{ botTurn() }, 560/config.animSpeed); }
   function botTurn(){
     if(state.gameOver) return;
@@ -687,32 +707,54 @@ if ('serviceWorker' in navigator) {
   let netState = document.getElementById('netState');
   const onlineDlg = document.getElementById('onlineDlg');
   document.getElementById('onlineClose').onclick = ()=> onlineDlg.close();
-  document.getElementById('hostCreate')?.addEventListener('click', async ()=>{
+
+  // Declare elements BEFORE usage (fix ReferenceError)
+  const hostOffer = document.getElementById('hostOffer');
+  const hostAnswer = document.getElementById('hostAnswer');
+  const guestOffer = document.getElementById('guestOffer');
+  const guestAnswer = document.getElementById('guestAnswer');
+
+  // Guard clipboard buttons if unsupported
+  function hasClipboard(){ return !!(navigator.clipboard && navigator.clipboard.readText && navigator.clipboard.writeText); }
+  if(!hasClipboard()){
+    document.getElementById('hostPaste').style.display='none';
+    document.getElementById('hostCopy').style.display='none';
+    document.getElementById('guestPasteOffer').style.display='none';
+    document.getElementById('guestCopyAnswer').style.display='none';
+  }
+
+  document.getElementById('hostCreate').onclick = async ()=>{
     await createPeer('host');
-    hostOffer.value = btoa(JSON.stringify(await net.pc.createOffer()));
-    await net.pc.setLocalDescription(JSON.parse(atob(hostOffer.value)));
+    const offer = await net.pc.createOffer();
+    await net.pc.setLocalDescription(offer);
+    hostOffer.value = btoa(JSON.stringify(net.pc.localDescription));
     netState.textContent = 'Скопируйте оффер и отправьте другу.';
-  });
-  document.getElementById('hostCopy')?.addEventListener('click', async ()=> { try{ await navigator.clipboard.writeText(hostOffer.value); }catch(e){} });
-  document.getElementById('hostPaste')?.addEventListener('click', async ()=> { try{ hostAnswer.value = await navigator.clipboard.readText(); }catch(e){} });
-  document.getElementById('hostSetAnswer')?.addEventListener('click', async ()=>{
-    const ans = JSON.parse(atob(hostAnswer.value.trim()));
-    await net.pc.setRemoteDescription(ans);
-    netState.textContent = 'Ожидание соединения…';
-  });
-  document.getElementById('guestPasteOffer')?.addEventListener('click', async ()=> { try{ guestOffer.value = await navigator.clipboard.readText(); }catch(e){} });
-  document.getElementById('guestCreateAnswer')?.addEventListener('click', async ()=>{
-    await createPeer('guest');
-    const off = JSON.parse(atob(guestOffer.value.trim()));
-    await net.pc.setRemoteDescription(off);
-    const answer = await net.pc.createAnswer();
-    await net.pc.setLocalDescription(answer);
-    guestAnswer.value = btoa(JSON.stringify(answer));
-    netState.textContent = 'Скопируйте этот ответ другу.';
-  });
-  document.getElementById('guestCopyAnswer')?.addEventListener('click', async ()=> { try{ await navigator.clipboard.writeText(guestAnswer.value); }catch(e){} });
+  };
+  document.getElementById('hostCopy').onclick = async ()=> { try{ await navigator.clipboard.writeText(hostOffer.value); }catch(e){} };
+  document.getElementById('hostPaste').onclick = async ()=> { try{ hostAnswer.value = await navigator.clipboard.readText(); }catch(e){} };
+  document.getElementById('hostSetAnswer').onclick = async ()=>{
+    try{
+      const ans = JSON.parse(atob((hostAnswer.value||'').trim()));
+      await net.pc.setRemoteDescription(ans);
+      netState.textContent = 'Ожидание соединения…';
+    }catch(e){ alert('Неверный answer'); }
+  };
+  document.getElementById('guestPasteOffer').onclick = async ()=> { try{ guestOffer.value = await navigator.clipboard.readText(); }catch(e){} };
+  document.getElementById('guestCreateAnswer').onclick = async ()=>{
+    try{
+      await createPeer('guest');
+      const off = JSON.parse(atob((guestOffer.value||'').trim()));
+      await net.pc.setRemoteDescription(off);
+      const answer = await net.pc.createAnswer();
+      await net.pc.setLocalDescription(answer);
+      guestAnswer.value = btoa(JSON.stringify(net.pc.localDescription));
+      netState.textContent = 'Скопируйте ответ и отправьте хосту.';
+    }catch(e){ alert('Неверный offer'); }
+  };
+  document.getElementById('guestCopyAnswer').onclick = async ()=> { try{ await navigator.clipboard.writeText(guestAnswer.value); }catch(e){} };
 
   async function createPeer(role){
+    if (!(window.RTCPeerConnection)) { alert('WebRTC недоступен в этом браузере'); return; }
     net = { mode:'online', role, pc: new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]}), dc:null, ready:false };
     net.pc.oniceconnectionstatechange = ()=> netState.textContent = 'ICE: '+net.pc.iceConnectionState;
     net.pc.onconnectionstatechange = ()=> netState.textContent = 'RTC: '+net.pc.connectionState;
