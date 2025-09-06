@@ -1,10 +1,9 @@
-const CACHE = 'durak-cache-v9-3-stable';
+const CACHE = 'durak-cache-v9-4';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './sw.js',
-  './sw-helper.js',
   './icons/pwa-192.png',
   './icons/pwa-512.png',
   './icons/apple-touch-icon.png'
