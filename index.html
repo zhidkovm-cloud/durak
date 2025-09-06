@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Дурак — PWA v9.5 (control-safe)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<title>Дурак — PWA v9.6 (portrait-first)</title>
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0f6b50">
@@ -16,12 +16,14 @@
     --vh: 1vh; /* updated via JS */
     --card-w: 72px;
     --card-h: calc(var(--card-w) * 1.4);
-    --overlap: -0.55; /* negative for overlap in hands */
+    --overlap: -0.58;
     --pad-h: 8px;
     --pad-v: 8px;
-    --deckW: 130px;
+    --deckW: 120px;
     --uiScale: 1;
     --footerH: 64px;
+    --fontSmall: 12px;
+    --fontBig: 18px;
   }
   *{box-sizing:border-box}
   html, body { height: calc(var(--vh) * 100); overflow: hidden; }
@@ -45,7 +47,7 @@
   }
   .pill{padding:6px 10px;border-radius:999px;background:#fff;box-shadow:0 1px 2px #0002;border:1px solid #0001;font-size:14px; transform: scale(var(--uiScale))}
   button{
-    min-height:40px; min-width:40px;
+    min-height:38px; min-width:38px;
     padding:8px 12px;border-radius:14px;border:1px solid #0002;background:#fff;box-shadow:0 1px 3px #0002; cursor:pointer; font-weight:600;
     transform: scale(var(--uiScale));
   }
@@ -59,7 +61,7 @@
 
   .middle{
     display:grid;
-    grid-template-columns: 1fr minmax(96px, var(--deckW));
+    grid-template-columns: 1fr minmax(88px, var(--deckW));
     gap:8px;
     align-items:stretch;
     height: calc(100% - var(--footerH));
@@ -73,20 +75,20 @@
   .table{
     height: 100%;
     border-radius:18px; background:#fff8; box-shadow:inset 0 0 0 1px #0001; position:relative;
-    padding:8px; display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start; overflow:hidden;
+    padding:6px; display:flex; flex-wrap:wrap; gap:6px; align-content:flex-start; overflow:hidden;
   }
-  .pair{position:relative; width:var(--card-w); height:calc(var(--card-h)+14px)}
+  .pair{position:relative; width:var(--card-w); height:calc(var(--card-h)+10px)}
   .slot{position:absolute; width:var(--card-w); height:var(--card-h); border:2px dashed #0003; border-radius:10px; top:0}
-  .def{position:absolute; top:12px; left:14px; transform:rotate(-10deg)}
-  .hand{display:flex; gap: calc(var(--card-w) * var(--overlap)); padding-bottom: 4px; overflow:hidden}
+  .def{position:absolute; top:10px; left:12px; transform:rotate(-10deg)}
+  .hand{display:flex; gap: calc(var(--card-w) * var(--overlap)); padding-bottom: 2px; overflow:hidden}
 
-  .box{display:flex; flex-direction:column; gap:6px; align-items:stretch; padding:8px; border-radius:18px; background:#fff7; box-shadow:inset 0 0 0 1px #0001; height: fit-content}
-  .stack{position:relative; width:calc(var(--card-w)+8px); height:calc(var(--card-h)+8px)}
+  .box{display:flex; flex-direction:column; gap:6px; align-items:stretch; padding:6px; border-radius:18px; background:#fff7; box-shadow:inset 0 0 0 1px #0001; height: fit-content}
+  .stack{position:relative; width:calc(var(--card-w)+6px); height:calc(var(--card-h)+6px)}
   .stack .back{position:absolute; top:0; left:0; transform-origin:bottom right}
   .stack .back:nth-child(1){transform:translate(0px,0px) rotate(0deg)}
-  .stack .back:nth-child(2){transform:translate(5px,3px) rotate(1deg)}
-  .stack .back:nth-child(3){transform:translate(10px,6px) rotate(2deg)}
-  .stack .back:nth-child(4){transform:translate(15px,9px) rotate(3deg)}
+  .stack .back:nth-child(2){transform:translate(4px,2px) rotate(1deg)}
+  .stack .back:nth-child(3){transform:translate(8px,4px) rotate(2deg)}
+  .stack .back:nth-child(4){transform:translate(12px,6px) rotate(3deg)}
   .trump-half{
     position:absolute; bottom:-8px; left:-22px;
     transform:rotate(90deg);
@@ -98,20 +100,20 @@
   .card{user-select:none; width:var(--card-w); height:var(--card-h); border-radius:12px; background:#fff; box-shadow:0 2px 8px #0003; border:1px solid #0002; padding:6px; display:flex; flex-direction:column; justify-content:space-between; transition: transform var(--animDur, .28s) ease, opacity var(--animDur, .28s) ease}
   .card.red{color:#c62828}
   .back{width:var(--card-w); height:var(--card-h); border-radius:12px; background:repeating-linear-gradient(45deg,#e3f2fd,#e3f2fd 6px,#bbdefb 6px,#bbdefb 12px); box-shadow:0 2px 8px #0003; border:1px solid #0002; z-index:1; position:relative}
-  .small{font-size:12px;font-weight:700}
-  .big{font-size:18px;font-weight:800; text-align:center}
+  .small{font-size:var(--fontSmall);font-weight:700}
+  .big{font-size:var(--fontBig);font-weight:800; text-align:center}
   .grow{flex:1}
   .appear{animation: pop var(--animDur, .25s) ease-out}
   @keyframes pop{ from{transform:scale(.96); opacity:.0} to{transform:scale(1); opacity:1} }
   .chat{display:flex; gap:6px; align-items:center}
-  .emoji-btn{font-size:18px; background:#fff; border:1px solid #0002; border-radius:12px; padding:6px 8px; cursor:pointer; min-width:40px; min-height:40px; transform: scale(var(--uiScale))}
+  .emoji-btn{font-size:18px; background:#fff; border:1px solid #0002; border-radius:12px; padding:6px 8px; cursor:pointer; min-width:38px; min-height:38px; transform: scale(var(--uiScale))}
   .timer{padding:6px 10px;border-radius:12px; background:#fff; border:1px solid #0002; min-width:86px; text-align:center; transform: scale(var(--uiScale))}
   .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(14px + env(safe-area-inset-bottom)); background:#1b5e20; color:#fff; padding:8px 12px; border-radius:999px; box-shadow:0 6px 24px #0005; display:none; z-index:99999}
   dialog{border:none; border-radius:16px; padding:16px; box-shadow:0 10px 40px #0003; max-width:92vw;width:clamp(280px,78vw,420px)}
   dialog::backdrop{background:rgba(0,0,0,.25)}
   .grid-cards{display:grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap:10px; max-height:44vh; overflow:auto}
 
-  /* Bottom action bar always visible */
+  /* Bottom action bar */
   footer.actionbar{
     height: var(--footerH);
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
@@ -119,13 +121,15 @@
     position:relative;
   }
   footer.actionbar .left, footer.actionbar .right{display:flex; gap:8px; align-items:center}
-  footer.actionbar .right button{transform-origin:right center}
   footer.actionbar::before{
     content:""; position:absolute; left:-8px; right:-8px; top:-24px; height:24px;
     background: linear-gradient(to top, rgba(255,255,255,0.9), rgba(255,255,255,0));
     pointer-events:none;
   }
 
+  @media (orientation:portrait){
+    :root{ --overlap: -0.64; }
+  }
   @media (max-width: 360px){
     .chat{display:none}
   }
@@ -169,7 +173,6 @@
     </div>
   </main>
 
-  <!-- Bottom controls always visible -->
   <footer class="actionbar">
     <div class="left">
       <button id="takeBtn">Беру</button>
@@ -229,6 +232,14 @@
       <input id="turnLimitRange" type="range" min="0" max="30" step="1" value="0">
       <div class="muted" style="font-size:12px">0 = без таймера</div>
     </label>
+    <label>Сортировка карт
+      <select id="sortMode" style="width:100%">
+        <option value="suitRank" selected>По масти и старшинству</option>
+        <option value="rankSuit">По рангу, затем масть</option>
+        <option value="none">Без сортировки</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="trumpRight" checked> Козыри всегда справа</label>
     <label><input type="checkbox" id="saveToggle" checked> Автосохранение партии</label>
   </div>
   <div class="row" style="justify-content:flex-end; margin-top:12px">
@@ -294,59 +305,51 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 function setVh(){ document.documentElement.style.setProperty('--vh', (window.innerHeight * 0.01) + 'px'); }
 setVh(); window.addEventListener('resize', ()=>{ setVh(); updateScale(); });
 
-// Auto-fit scaling logic (height + width aware) + reserved footer
+// Portrait-first auto-fit, tuned for iPhone X–14 Pro logical heights (812/844/852)
 function updateScale(){
   const H = window.innerHeight;
   const W = window.innerWidth;
-  const deckW = Math.min(110, Math.max(88, Math.floor(W*0.22)));
+  const portrait = H >= W;
+  const deckW = portrait ? Math.min(104, Math.max(84, Math.floor(W*0.2))) : Math.min(120, Math.max(96, Math.floor(W*0.18)));
   document.documentElement.style.setProperty('--deckW', deckW+'px');
 
-  const footerH = Math.max(58, Math.min(72, Math.floor(H*0.09)));
+  // Reserve footer space
+  const footerH = portrait ? Math.max(56, Math.min(66, Math.floor(H*0.085))) : Math.max(48, 56);
   document.documentElement.style.setProperty('--footerH', footerH+'px');
 
-  // header & topline rough heights in different modes
-  const headerH = H <= 680 ? 48 : 56;
-  const toplineH = H <= 680 ? 56 : 64;
-  const avail = H - (headerH + toplineH + footerH + 10);
+  // header & topline rough heights
+  const headerH = portrait ? 48 : 44;
+  const toplineH = portrait ? 54 : 48;
+  const avail = H - (headerH + toplineH + footerH + 8);
 
-  // width-driven card estimate
-  let cardW_fromWidth = Math.max(48, Math.min(80, Math.floor((W - deckW - 20) / 6.3)));
-  // height-driven: table ~1.5k + hand ~k => ~2.5k total
-  let cardW_fromHeight = Math.max(44, Math.min(80, Math.floor(avail / 2.5 / 1.4)));
+  // width-driven card estimate (hand + up to 6 pairs grid)
+  let cardW_fromWidth = Math.max(46, Math.min(78, Math.floor((W - deckW - 18) / 6.3)));
+  // height-driven: table ~1.45k + hand ~0.95k => ~2.4k total
+  let cardW_fromHeight = Math.max(44, Math.min(80, Math.floor(avail / 2.4 / 1.4)));
   let cardW = Math.min(cardW_fromWidth, cardW_fromHeight);
 
-  // compact tiers
-  if(H <= 740){
+  // target tiers for iPhone 12/14 Pro portrait logical H ≈ 844/852
+  if (portrait && H <= 852){
     document.documentElement.style.setProperty('--uiScale', 0.9);
-    document.documentElement.style.setProperty('--overlap', -0.62);
-  } else {
-    document.documentElement.style.setProperty('--uiScale', 1);
-    document.documentElement.style.setProperty('--overlap', -0.55);
-  }
-  if(H <= 680){
-    cardW = Math.min(cardW, 58);
-    document.documentElement.style.setProperty('--uiScale', 0.86);
     document.documentElement.style.setProperty('--overlap', -0.66);
+    document.documentElement.style.setProperty('--fontSmall', '11px');
+    document.documentElement.style.setProperty('--fontBig', '17px');
+    cardW = Math.min(cardW, 62);
   }
-  if(H <= 630){
-    cardW = Math.min(cardW, 54);
-    document.documentElement.style.setProperty('--uiScale', 0.82);
+  if (portrait && H <= 812){ // iPhone X/11 Pro tier
+    document.documentElement.style.setProperty('--uiScale', 0.86);
     document.documentElement.style.setProperty('--overlap', -0.7);
+    document.documentElement.style.setProperty('--fontSmall', '10px');
+    document.documentElement.style.setProperty('--fontBig', '16px');
+    cardW = Math.min(cardW, 58);
   }
-  if(H <= 600){
-    cardW = Math.min(cardW, 50);
-    document.documentElement.style.setProperty('--uiScale', 0.8);
+  if (portrait && H <= 736){ // fallback older Plus sizes / zoomed
+    document.documentElement.style.setProperty('--uiScale', 0.82);
     document.documentElement.style.setProperty('--overlap', -0.72);
-  }
-
-  // Collapse deck UI if ultra tight
-  const deckBox = document.getElementById('deckBox');
-  if(deckBox){
-    if(H <= 630){ deckBox.querySelector('.pill').textContent = 'Колода'; }
+    cardW = Math.min(cardW, 54);
   }
 
   document.documentElement.style.setProperty('--card-w', cardW+'px');
-  // hide chat if very narrow
   if(W < 360) document.querySelectorAll('.chat').forEach(e=> e.style.display='none');
 }
 window.addEventListener('load', updateScale);
@@ -355,9 +358,18 @@ window.addEventListener('load', updateScale);
 <script>
 (function(){
   // SETTINGS & SAVE
-  const settings = JSON.parse(localStorage.getItem('durak_settings_v9_5')||'{}');
-  const gameKey = 'durak_save_v9_5';
-  let config = { difficulty: settings.difficulty || 'normal', animSpeed: settings.animSpeed || 1.0, volume: settings.volume ?? 0.7, autosave: settings.autosave ?? true, bitoDelay: settings.bitoDelay ?? 0.8, turnLimit: settings.turnLimit ?? 0 };
+  const settings = JSON.parse(localStorage.getItem('durak_settings_v9_6')||'{}');
+  const gameKey = 'durak_save_v9_6';
+  let config = {
+    difficulty: settings.difficulty || 'normal',
+    animSpeed: settings.animSpeed || 1.0,
+    volume: settings.volume ?? 0.7,
+    autosave: settings.autosave ?? true,
+    bitoDelay: settings.bitoDelay ?? 0.8,
+    turnLimit: settings.turnLimit ?? 0,
+    sortMode: settings.sortMode || 'suitRank',
+    trumpRight: settings.trumpRight ?? true
+  };
   document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
 
   // MENU
@@ -382,7 +394,11 @@ window.addEventListener('load', updateScale);
   const volVal = document.getElementById('volVal');
   const bitoDelayVal = document.getElementById('bitoDelayVal');
   const turnLimitVal = document.getElementById('turnLimitVal');
+  const sortModeSel = document.getElementById('sortMode');
+  const trumpRightChk = document.getElementById('trumpRight');
+
   difficultySel.value = config.difficulty; animRange.value = config.animSpeed; volRange.value = config.volume; saveToggle.checked = config.autosave; bitoDelayRange.value = config.bitoDelay; turnLimitRange.value = config.turnLimit;
+  sortModeSel.value = config.sortMode; trumpRightChk.checked = !!config.trumpRight;
   animVal.textContent = config.animSpeed.toFixed(1)+'x'; volVal.textContent = Math.round(config.volume*100)+'%'; bitoDelayVal.textContent = config.bitoDelay.toFixed(1)+'с'; turnLimitVal.textContent = config.turnLimit ? (config.turnLimit+'с') : '—';
   document.getElementById('settingsClose').onclick = ()=> dlg.close();
   animRange.oninput = ()=> { config.animSpeed = parseFloat(animRange.value); animVal.textContent = config.animSpeed.toFixed(1)+'x'; document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s'); saveSettings(); };
@@ -391,7 +407,9 @@ window.addEventListener('load', updateScale);
   saveToggle.onchange = ()=> { config.autosave = saveToggle.checked; saveSettings(); };
   bitoDelayRange.oninput = ()=> { config.bitoDelay = parseFloat(bitoDelayRange.value); bitoDelayVal.textContent = config.bitoDelay.toFixed(1)+'с'; saveSettings(); };
   turnLimitRange.oninput = ()=> { config.turnLimit = parseInt(turnLimitRange.value); turnLimitVal.textContent = config.turnLimit ? (config.turnLimit+'с') : '—'; saveSettings(); };
-  function saveSettings(){ localStorage.setItem('durak_settings_v9_5', JSON.stringify(config)) }
+  sortModeSel.onchange = ()=>{ config.sortMode = sortModeSel.value; resortAll(); saveSettings(); };
+  trumpRightChk.onchange = ()=>{ config.trumpRight = trumpRightChk.checked; resortAll(); saveSettings(); };
+  function saveSettings(){ localStorage.setItem('durak_settings_v9_6', JSON.stringify(config)) }
 
   // AUDIO
   let audioCtx = null;
@@ -427,6 +445,26 @@ window.addEventListener('load', updateScale);
   let net = { mode:'offline', role:null, pc:null, dc:null, ready:false };
   const state = { deck: [], trump: null, trumpCard: null, you: [], bot: [], table: [], attacker: 'you', gameOver:false, discard: [], bout:{capacity:6, started:false} };
 
+  // Sorting helpers
+  function rankVal(r){ return typeof r==='number'?r: ({'В':11,'Д':12,'К':13,'Т':14}[r]); }
+  function suitOrder(s){
+    const base = {'♠':0,'♥':1,'♦':2,'♣':3};
+    if (config.trumpRight && state.trump){
+      const t = state.trump;
+      if(s===t) return 10;
+    }
+    return base[s];
+  }
+  function sortHand(arr){
+    if(config.sortMode==='none') return;
+    if(config.sortMode==='suitRank'){
+      arr.sort((a,b)=> suitOrder(a.suit)-suitOrder(b.suit) || rankVal(a.rank)-rankVal(b.rank));
+    } else if(config.sortMode==='rankSuit'){
+      arr.sort((a,b)=> rankVal(a.rank)-rankVal(b.rank) || suitOrder(a.suit)-suitOrder(b.suit));
+    }
+  }
+  function resortAll(){ sortHand(state.you); sortHand(state.bot); update(); }
+
   // Timer
   let timerId = null, timeLeft = 0;
   const $timer = document.getElementById('turnTimer');
@@ -444,7 +482,6 @@ window.addEventListener('load', updateScale);
     shuffle(cards); state.trumpCard = cards[cards.length-1]; state.trump = state.trumpCard.suit; return cards;
   }
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } }
-  function rankVal(r){ return typeof r==='number'?r: ({'В':11,'Д':12,'К':13,'Т':14}[r]); }
   function canBeat(c, other){ if(c.suit===other.suit) return rankVal(c.rank)>rankVal(other.rank); if(c.suit===state.trump && other.suit!==state.trump) return true; return false; }
   function defender(){ return state.attacker==='you'?'bot':'you' }
   function hand(of){ return of==='you'?state.you:state.bot }
@@ -497,9 +534,16 @@ window.addEventListener('load', updateScale);
   }
   function renderBack(){ const el=document.createElement('div'); el.className='back appear'; return el }
 
+  function updateTrumpChip(){
+    const red = (state.trump==='♥' || state.trump==='♦');
+    const span = document.getElementById('trumpSym');
+    span.textContent = state.trump || '?';
+    span.style.color = red ? '#c62828' : '#0a2a4a';
+  }
+
   function update(){
     document.documentElement.style.setProperty('--animDur', (0.28/config.animSpeed)+'s');
-    $trump.textContent = state.trump||'?';
+    updateTrumpChip();
     $deckLeft.textContent = state.deck.length;
     document.getElementById('botCount').textContent = state.bot.length;
 
@@ -520,6 +564,9 @@ window.addEventListener('load', updateScale);
     const capNote = ` лимит: ${maxPairs()}`;
     const phase = uncoveredIdx()!==-1? '— защита' : (state.table.length? '— можно подкинуть' : '— новый заход');
     $status.textContent = atk+ '. ' + def + '. ' + phase + transferNote + ' · ' + capNote;
+
+    sortHand(state.you);
+    sortHand(state.bot);
 
     $you.innerHTML='';
     for(const c of state.you){ $you.appendChild(renderCard(c,{ onClick:(ev)=> onYouPlay(c, ev.currentTarget) })); }
@@ -638,7 +685,11 @@ window.addEventListener('load', updateScale);
   }
   function offerThrowIn(){
     const {limit, candidates} = computeThrowOptions();
-    if(limit<=0 || candidates.length===0){ finalizeTake(); return; }
+    if(limit<=0 || candidates.length===0){
+      showToast('Бот берёт. Подкинуть нечего.');
+      finalizeTake();
+      return;
+    }
     pendingThrow = {limit, selected:new Set(), candidatesIds:new Set(candidates.map(c=>c.id))};
     document.getElementById('throwInfo').textContent = `Можно отдать до ${limit} карт тем же рангом.`;
     const throwGrid = document.getElementById('throwGrid');
@@ -690,6 +741,7 @@ window.addEventListener('load', updateScale);
     if(defenderTakes){
       if(defender()==='bot' && state.attacker==='you' && net.mode==='offline'){ offerThrowIn(); return; }
       if(net.mode==='online'){ if(state.attacker==='you'){ offerThrowIn(); return; } }
+      if(defender()==='you'){ showToast('Вы берёте карты.'); }
       finalizeTake();
     } else {
       const pile = state.table.slice();
@@ -744,7 +796,7 @@ window.addEventListener('load', updateScale);
       const rs=ranksOnTable();
       const trans = !hasAnyDefense() ? state.bot.find(c => rs.has(c.rank) && canTransferBy('bot', c)) : null;
       if(trans){ removeCard(state.bot, trans); state.table.push({a:trans,d:null}); state.attacker = 'bot'; state.bout.started=true; state.bout.capacity=Math.min(6, hand('you').length); update(); sfx('transfer'); startTimer(); maybeBot(); }
-      else { endBout(true); }
+      else { showToast('Бот берёт' + (computeThrowOptions().candidates.length? '…' : '. Подкинуть нечего.')); endBout(true); }
     }
   }
   function botLead(diff){
